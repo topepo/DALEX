@@ -4,14 +4,16 @@
 \alias{loss_yardstick}
 \title{Wrapper for Loss Functions from the yardstick Package}
 \usage{
-loss_yardstick(loss, reverse = FALSE, reference = 1)
+loss_yardstick(loss, reverse = NULL, reference = 1, event_level = "second")
 }
 \arguments{
 \item{loss}{loss function from the yardstick package}
 
-\item{reverse}{shall the metric be reversed? for loss metrics lower values are better. \code{reverse = TRUE} is useful for accuracy-like metrics}
+\item{reverse}{shall the metric be reversed? for loss metrics lower values are better. \code{reverse = TRUE} is useful for accuracy-like metrics. Note that yardstick metrics contain information on direction, so \code{reverse} is only needed in unique situations.}
 
 \item{reference}{if the metric is reverse then it is calculated as \code{reference - loss}. The default value is 1.}
+
+\item{event_level}{a single string. Either "first" or "second" to specify which level of truth to consider as the "event". This argument is only applicable for binary loss functions.}
 }
 \value{
 loss function that can be used in the model_parts function

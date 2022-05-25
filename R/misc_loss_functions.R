@@ -90,9 +90,9 @@ loss_default <- function(x) {
 #' must be guaranteed by the user.
 #'
 #' @param loss loss function from the yardstick package
-#' @param reverse shall the metric be reversed? for loss metrics lower values are better. \code{reverse = TRUE} is useful for accuracy-like metrics
+#' @param reverse shall the metric be reversed? for loss metrics lower values are better. \code{reverse = TRUE} is useful for accuracy-like metrics. Note that yardstick metrics contain information on direction, so \code{reverse} is only needed in unique situations.
 #' @param reference if the metric is reverse then it is calculated as \code{reference - loss}. The default value is 1.
-#'
+#' @param event_level a single string. Either "first" or "second" to specify which level of truth to consider as the "event". This argument is only applicable for binary loss functions.
 #' @return loss function that can be used in the model_parts function
 #'
 #' @export
@@ -108,18 +108,34 @@ loss_default <- function(x) {
 #'
 #' @rdname loss_yardstick
 #' @export
-loss_yardstick <- function(loss, reverse = FALSE, reference = 1) {
+loss_yardstick <- function(loss, reverse = NULL, reference = 1, event_level = "second") {
+  if (!inherits(loss, "metric")) {
+    stop("'metric' should be a yardstick metric function.")
+  }
+  event_level <- match.arg(event_level, c("second", "first"))
+  if (is.null(reverse)) {
+    reverse <- attr(loss, "direction") == "maximize"
+  }
   # wrapper for yardstick loss functions
   if (reverse) {
     custom_loss <- function(observed, predicted) {
       df <- data.frame(observed, predicted)
-      reference - loss(df, observed, predicted)$.estimate
+      if (inherits(loss, "class_metric") || inherits(loss, "prob_metric")) {
+        reference - loss(df, observed, predicted, event_level = event_level)$.estimate
+      } else {
+        reference - loss(df, observed, predicted)$.estimate
+      }
     }
     attr(custom_loss, "loss_name") <- paste0(reference, " - ", deparse(substitute(loss)))
   } else {
     custom_loss <- function(observed, predicted) {
       df <- data.frame(observed, predicted)
       loss(df, observed, predicted)$.estimate
+      if (inherits(loss, "class_metric") || inherits(loss, "prob_metric")) {
+        loss(df, observed, predicted, event_level = event_level)$.estimate
+      } else {
+        loss(df, observed, predicted)$.estimate
+      }
     }
     attr(custom_loss, "loss_name") <- deparse(substitute(loss))
   }
